@@ -1,6 +1,25 @@
 // Netlify Function: receives survey submissions and emails CSV via Resend
+const https = require("https");
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const TO_EMAIL = "austin.j.triana@gmail.com";
+
+// fetch fallback for Node <18
+function postJSON(url, headers, body) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = https.request(
+      { hostname: parsed.hostname, path: parsed.pathname, method: "POST", headers },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: () => Promise.resolve(data) }));
+      }
+    );
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 exports.handler = async (event) => {
   // CORS headers
@@ -71,33 +90,47 @@ The CSV file is attached.
     `.trim();
 
     // Send via Resend API
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "EchoWMA <onboarding@resend.dev>",
-        to: [TO_EMAIL],
-        subject: `EchoWMA Submission — ${rater.name} (${rater.hospital})`,
-        text: emailBody,
-        attachments: [
-          {
-            filename: `echoWMA_${rater.name.replace(/\s+/g, "_")}_${Date.now()}.csv`,
-            content: csvBase64,
-          },
-        ],
-      }),
+    if (!RESEND_API_KEY) {
+      console.error("RESEND_API_KEY is not set");
+      return { statusCode: 500, headers, body: JSON.stringify({ error: "Missing API key" }) };
+    }
+
+    const emailPayload = JSON.stringify({
+      from: "EchoWMA <onboarding@resend.dev>",
+      to: [TO_EMAIL],
+      subject: `EchoWMA Submission — ${rater.name} (${rater.hospital})`,
+      text: emailBody,
+      attachments: [
+        {
+          filename: `echoWMA_${rater.name.replace(/\s+/g, "_")}_${Date.now()}.csv`,
+          content: csvBase64,
+        },
+      ],
     });
+
+    const reqHeaders = {
+      "Authorization": `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    let response;
+    if (typeof fetch !== "undefined") {
+      response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: reqHeaders,
+        body: emailPayload,
+      });
+    } else {
+      response = await postJSON("https://api.resend.com/emails", reqHeaders, emailPayload);
+    }
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Resend error:", errText);
+      console.error("Resend error:", response.status, errText);
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: "Failed to send email" }),
+        body: JSON.stringify({ error: "Failed to send email", detail: errText }),
       };
     }
 
