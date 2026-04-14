@@ -1,9 +1,11 @@
 // Netlify Function: receives survey submissions, stores in Supabase, and emails CSV via Resend
 const https = require("https");
+const Sentry = require("@sentry/node");
+Sentry.init({ dsn: process.env.SENTRY_DSN || "" });
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const TO_EMAIL = "austin.j.triana@gmail.com";
+const TO_EMAIL = process.env.TO_EMAIL || "austin.j.triana@gmail.com";
 
 // fetch fallback for Node <18
 function postJSON(url, reqHeaders, body) {
@@ -30,6 +32,56 @@ async function safeFetch(url, options) {
   return postJSON(url, options.headers, options.body);
 }
 
+function validatePayload(payload) {
+  const errors = [];
+
+  if (!payload.rater || typeof payload.rater !== "object") {
+    errors.push("Missing rater object");
+  } else {
+    if (!payload.rater.name || typeof payload.rater.name !== "string" || payload.rater.name.trim().length === 0) {
+      errors.push("Rater name is required");
+    } else if (payload.rater.name.length > 200) {
+      errors.push("Rater name too long");
+    }
+    if (payload.rater.hospital && typeof payload.rater.hospital !== "string") {
+      errors.push("Hospital must be a string");
+    }
+    if (payload.rater.role && !["Faculty", "Fellow"].includes(payload.rater.role)) {
+      errors.push("Invalid role value");
+    }
+  }
+
+  if (!Array.isArray(payload.cases) || payload.cases.length === 0) {
+    errors.push("Cases array is required and must not be empty");
+  } else if (payload.cases.length > 10) {
+    errors.push("Too many cases");
+  } else {
+    payload.cases.forEach((c, i) => {
+      if (!c.caseNumber || typeof c.caseNumber !== "number") {
+        errors.push(`Case ${i}: missing or invalid caseNumber`);
+      }
+      if (!c.scores || typeof c.scores !== "object") {
+        errors.push(`Case ${i}: missing scores object`);
+      } else {
+        for (const [seg, val] of Object.entries(c.scores)) {
+          const segNum = parseInt(seg);
+          if (isNaN(segNum) || segNum < 1 || segNum > 17) {
+            errors.push(`Case ${i}: invalid segment number ${seg}`);
+          }
+          if (val !== null && (typeof val !== "number" || !Number.isInteger(val) || val < 0 || val > 5)) {
+            errors.push(`Case ${i}: segment ${seg} score must be null or integer 0-5`);
+          }
+        }
+      }
+      if (c.wmsi !== null && c.wmsi !== undefined && typeof c.wmsi !== "number") {
+        errors.push(`Case ${i}: WMSI must be a number or null`);
+      }
+    });
+  }
+
+  return errors;
+}
+
 exports.handler = async (event) => {
   // CORS headers
   const headers = {
@@ -47,12 +99,19 @@ exports.handler = async (event) => {
   }
 
   try {
-    const payload = JSON.parse(event.body);
-    const { rater, cases, timestamp } = payload;
-
-    if (!rater?.name || !cases?.length) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid payload" }) };
+    let payload;
+    try {
+      payload = JSON.parse(event.body);
+    } catch (e) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON" }) };
     }
+
+    const validationErrors = validatePayload(payload);
+    if (validationErrors.length > 0) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "Validation failed", details: validationErrors }) };
+    }
+
+    const { rater, cases, timestamp } = payload;
 
     // ---- Supabase insert ----
     if (SUPABASE_URL && SUPABASE_KEY) {
@@ -85,6 +144,7 @@ exports.handler = async (event) => {
       if (!dbResp.ok) {
         const errText = await dbResp.text();
         console.error("Supabase insert error:", dbResp.status, errText);
+        Sentry.captureException(new Error(`Supabase insert failed: ${dbResp.status} ${errText}`));
         // Don't fail the whole request — continue to email
       } else {
         console.log("Supabase insert success:", rows.length, "rows");
@@ -167,6 +227,7 @@ The CSV file is attached. Data has also been saved to Supabase.
     if (!emailResp.ok) {
       const errText = await emailResp.text();
       console.error("Resend error:", emailResp.status, errText);
+      Sentry.captureException(new Error(`Resend email failed: ${emailResp.status} ${errText}`));
       return {
         statusCode: 500,
         headers,
@@ -181,6 +242,7 @@ The CSV file is attached. Data has also been saved to Supabase.
     };
   } catch (err) {
     console.error("Function error:", err);
+    Sentry.captureException(err);
     return {
       statusCode: 500,
       headers,
