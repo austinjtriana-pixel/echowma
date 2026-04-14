@@ -1,0 +1,7 @@
+{
+  "name": "echowma",
+  "private": true,
+  "dependencies": {
+    "@sentry/node": "^8.0.0"
+  }
+}
