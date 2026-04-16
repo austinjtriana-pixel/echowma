@@ -276,6 +276,24 @@
     dominant-baseline: central;
   }
 
+  .segment-tooltip {
+    position: fixed;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 998;
+    display: none;
+    white-space: nowrap;
+  }
+
+  .segment-tooltip.visible { display: block; }
+
   .controls-section {
     background: var(--card);
     border: 1px solid var(--border);
@@ -747,8 +765,10 @@
     z-index: 2000;
     background: var(--bg);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    overflow-y: auto;
+    padding: 24px 16px;
   }
 
   .onboarding-modal.hidden { display: none; }
@@ -759,7 +779,7 @@
     border-radius: 4px;
     padding: 28px;
     max-width: 520px;
-    width: 90%;
+    width: 100%;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
 
