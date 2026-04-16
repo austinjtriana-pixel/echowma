@@ -31,6 +31,7 @@ The `submissions` table stores one row per case per rater:
 CREATE TABLE submissions (
   id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   rater_name  TEXT NOT NULL,
+  rater_email TEXT,
   hospital    TEXT,
   role        TEXT,
   case_number INTEGER NOT NULL,

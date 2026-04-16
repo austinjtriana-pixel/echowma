@@ -86,7 +86,7 @@ const VIEWS = {
 
 // State
 let state = {
-  rater: { name: "", hospital: "", role: "" },
+  rater: { name: "", email: "", hospital: "", role: "" },
   currentCase: 1,
   maxVisitedCase: 1,
   submitted: false,
@@ -674,7 +674,7 @@ function loadState() {
     try {
       const parsed = JSON.parse(saved);
       if (parsed.rater) {
-        state.rater = { name: parsed.rater.name || "", hospital: parsed.rater.hospital || "", role: parsed.rater.role || "" };
+        state.rater = { name: parsed.rater.name || "", email: parsed.rater.email || "", hospital: parsed.rater.hospital || "", role: parsed.rater.role || "" };
       } else if (parsed.raterId) {
         state.rater.name = parsed.raterId;
       }
@@ -702,7 +702,7 @@ document.getElementById("caseComments").addEventListener("input", saveState);
 // ============================================================
 function buildCSV() {
   const segHeaders = SEGMENTS.map(s => `Seg${s.id}_${s.name.replace(/\s+/g, "")}`);
-  const header = ["RaterID", "Hospital", "Role", "CaseNumber", ...segHeaders, "WMSI", "Comments"].join(",");
+  const header = ["RaterID", "Email", "Hospital", "Role", "CaseNumber", ...segHeaders, "WMSI", "Comments"].join(",");
 
   const rows = [];
   for (let c = 1; c <= 5; c++) {
@@ -716,8 +716,9 @@ function buildCSV() {
     const wmsi = count > 0 ? (sum / count).toFixed(2) : "";
     const comments = (state.cases[c].comments || "").replace(/"/g, '""');
     const name = (state.rater.name || "").replace(/"/g, '""');
+    const email = (state.rater.email || "").replace(/"/g, '""');
     const hospital = (state.rater.hospital || "").replace(/"/g, '""');
-    rows.push([`"${name}"`, `"${hospital}"`, state.rater.role, c, ...segValues, wmsi, `"${comments}"`].join(","));
+    rows.push([`"${name}"`, `"${email}"`, `"${hospital}"`, state.rater.role, c, ...segValues, wmsi, `"${comments}"`].join(","));
   }
   return header + "\n" + rows.join("\n");
 }
@@ -769,17 +770,21 @@ document.getElementById("intakeHospital").addEventListener("change", function() 
 
 function submitIntake() {
   const name = document.getElementById("intakeName").value.trim();
+  const email = document.getElementById("intakeEmail").value.trim();
   const hospitalSelect = document.getElementById("intakeHospital").value;
   const hospitalOther = document.getElementById("intakeHospitalOther").value.trim();
   const hospital = hospitalSelect === "Other" ? hospitalOther : hospitalSelect;
   const role = document.getElementById("intakeRole").value;
 
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   document.getElementById("nameError").style.display = name ? "none" : "block";
+  document.getElementById("emailError").style.display = emailValid ? "none" : "block";
   document.getElementById("hospitalError").style.display = hospital ? "none" : "block";
   document.getElementById("roleError").style.display = role ? "none" : "block";
-  if (!name || !hospital || !role) return;
+  if (!name || !emailValid || !hospital || !role) return;
 
-  state.rater = { name, hospital, role };
+  state.rater = { name, email, hospital, role };
   document.getElementById("intakeModal").classList.add("hidden");
 
   // Show onboarding for first-time users
@@ -802,6 +807,7 @@ function showIntakeModal() {
   const modal = document.getElementById("intakeModal");
   modal.classList.remove("hidden");
   document.getElementById("intakeName").value = state.rater.name || "";
+  document.getElementById("intakeEmail").value = state.rater.email || "";
   const knownHospitals = ["HUP", "Presby", "Pennsy"];
   const h = state.rater.hospital || "";
   if (knownHospitals.includes(h)) {
@@ -818,7 +824,8 @@ function showIntakeModal() {
 function updateRaterDisplay() {
   const info = document.getElementById("raterInfo");
   if (state.rater.name) {
-    info.innerHTML = `<span>${state.rater.name} | ${state.rater.hospital} | ${state.rater.role}</span><button onclick="showIntakeModal()">Edit</button>`;
+    const emailPart = state.rater.email ? ` | ${state.rater.email}` : "";
+    info.innerHTML = `<span>${state.rater.name}${emailPart} | ${state.rater.hospital} | ${state.rater.role}</span><button onclick="showIntakeModal()">Edit</button>`;
   } else {
     info.innerHTML = "";
   }
@@ -838,7 +845,7 @@ function showReviewPanel() {
 
   let html = `<h2>Review Your Responses</h2>
     <p class="review-subtitle">Please review your scores before submitting.</p>
-    <div class="review-rater"><strong>${state.rater.name}</strong> &mdash; ${state.rater.hospital} &mdash; ${state.rater.role}</div>`;
+    <div class="review-rater"><strong>${state.rater.name}</strong> &mdash; ${state.rater.email} &mdash; ${state.rater.hospital} &mdash; ${state.rater.role}</div>`;
 
   for (let c = 1; c <= 5; c++) {
     const scored = countScored(c);

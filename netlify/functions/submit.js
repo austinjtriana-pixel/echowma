@@ -43,6 +43,11 @@ function validatePayload(payload) {
     } else if (payload.rater.name.length > 200) {
       errors.push("Rater name too long");
     }
+    if (!payload.rater.email || typeof payload.rater.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.rater.email)) {
+      errors.push("Valid rater email is required");
+    } else if (payload.rater.email.length > 254) {
+      errors.push("Rater email too long");
+    }
     if (payload.rater.hospital && typeof payload.rater.hospital !== "string") {
       errors.push("Hospital must be a string");
     }
@@ -117,6 +122,7 @@ exports.handler = async (event) => {
     if (SUPABASE_URL && SUPABASE_KEY) {
       const rows = cases.map((c) => ({
         rater_name: rater.name,
+        rater_email: rater.email || null,
         hospital: rater.hospital || null,
         role: rater.role || null,
         case_number: c.caseNumber,
@@ -163,7 +169,7 @@ exports.handler = async (event) => {
       "ApicalLateral", "Apex"
     ];
     const segHeaders = segNames.map((name, i) => `Seg${i + 1}_${name}`);
-    const csvHeader = ["RaterID", "Hospital", "Role", "CaseNumber", ...segHeaders, "WMSI", "Comments"].join(",");
+    const csvHeader = ["RaterID", "Email", "Hospital", "Role", "CaseNumber", ...segHeaders, "WMSI", "Comments"].join(",");
 
     const csvRows = cases.map((c) => {
       const segValues = [];
@@ -172,8 +178,9 @@ exports.handler = async (event) => {
       }
       const comments = (c.comments || "").replace(/"/g, '""');
       const name = (rater.name || "").replace(/"/g, '""');
+      const email = (rater.email || "").replace(/"/g, '""');
       const hospital = (rater.hospital || "").replace(/"/g, '""');
-      return [`"${name}"`, `"${hospital}"`, rater.role, c.caseNumber, ...segValues, c.wmsi ?? "", `"${comments}"`].join(",");
+      return [`"${name}"`, `"${email}"`, `"${hospital}"`, rater.role, c.caseNumber, ...segValues, c.wmsi ?? "", `"${comments}"`].join(",");
     });
 
     const csv = csvHeader + "\n" + csvRows.join("\n");
@@ -184,6 +191,7 @@ exports.handler = async (event) => {
 New EchoWMA submission received.
 
 Rater: ${rater.name}
+Email: ${rater.email}
 Hospital: ${rater.hospital}
 Role: ${rater.role}
 Submitted: ${timestamp || new Date().toISOString()}
