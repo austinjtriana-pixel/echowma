@@ -160,15 +160,17 @@ function renderRing(containerId, view) {
     const midR = (effectiveInnerR + outerR) / 2;
     const lp = polarToCart(cx, cy, midR, midAngle);
 
-    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" />`;
-    svg += `<text x="${lp.x}" y="${lp.y}" fill="${info.textColor}" class="segment-label">${segId}</text>`;
+    const scoreLabel = info.value === null ? "" : info.value;
+    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<text x="${lp.x}" y="${lp.y}" fill="${info.textColor}" class="segment-label">${scoreLabel}</text>`;
   });
 
   // Apex center circle
   if (hasApex) {
     const apexInfo = getScoreInfo(state.cases[state.currentCase].scores[view.apex]);
-    svg += `<circle cx="${cx}" cy="${cy}" r="${apexR}" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" />`;
-    svg += `<text x="${cx}" y="${cy}" fill="${apexInfo.textColor}" class="segment-label">${view.apex}</text>`;
+    const apexScoreLabel = apexInfo.value === null ? "" : apexInfo.value;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${apexR}" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" onmousemove="showSegTooltip(event, ${view.apex})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<text x="${cx}" y="${cy}" fill="${apexInfo.textColor}" class="segment-label">${apexScoreLabel}</text>`;
   }
 
   // RV reference — curved outline on the septal (left) side
@@ -180,7 +182,7 @@ function renderRing(containerId, view) {
   const rvBulge = view.sectors === 6 ? 80 : 65;
   const rvC1 = polarToCart(cx, cy, outerR + rvBulge, rvStartAngle + 20);
   const rvC2 = polarToCart(cx, cy, outerR + rvBulge, rvEndAngle - 20);
-  svg += `<path d="M ${rvP1.x} ${rvP1.y} C ${rvC1.x} ${rvC1.y} ${rvC2.x} ${rvC2.y} ${rvP2.x} ${rvP2.y}" fill="none" stroke="#bbb" stroke-width="1.5"/>`;
+  svg += `<path d="M ${rvP1.x} ${rvP1.y} C ${rvC1.x} ${rvC1.y} ${rvC2.x} ${rvC2.y} ${rvP2.x} ${rvP2.y}" fill="none" stroke="#bbb" stroke-width="1.8"/>`;
 
   svg += `</svg>`;
   document.getElementById(containerId).innerHTML = svg;
@@ -192,20 +194,18 @@ function renderRing(containerId, view) {
 function renderLongAxis(containerId, view) {
   const rvLeftExtra = (view.hasRV && !view.hasAorta) ? 85 : 0;
   const rvRightExtra = (view.hasRV && view.hasAorta) ? 85 : 0;
-  const w = 260 + rvLeftExtra + rvRightExtra, h = 340;
+  const w = 260 + rvLeftExtra + rvRightExtra, h = 290;
   const cx = rvLeftExtra + 260 / 2;
 
-  const apexY = 35;
-  const baseY = 230;
-  const atriaTop = baseY + 5;
-  const atriaBot = h - 10;
+  const apexY = 42;
+  const baseY = 254;
 
   const wallThick = 24;
   const cavityHalfTop = 10;
-  const cavityHalfBot = 48;
+  const cavityHalfBot = 42;
 
   function lerp(a, b, t) { return a + (b - a) * t; }
-  function easeOut(t) { return 1 - Math.pow(1 - t, 1.8); }
+  function easeOut(t) { return 1 - Math.pow(1 - t, 1.35); }
   function tFrac(y) { return (y - apexY) / (baseY - apexY); }
 
   function leftInner(y) {
@@ -214,7 +214,7 @@ function renderLongAxis(containerId, view) {
   }
   function leftOuter(y) {
     const t = easeOut(tFrac(y));
-    const thick = lerp(wallThick * 0.65, wallThick, t);
+    const thick = lerp(wallThick * 0.9, wallThick, t);
     return leftInner(y) - thick;
   }
   function rightInner(y) {
@@ -223,7 +223,7 @@ function renderLongAxis(containerId, view) {
   }
   function rightOuter(y) {
     const t = easeOut(tFrac(y));
-    const thick = lerp(wallThick * 0.65, wallThick, t);
+    const thick = lerp(wallThick * 0.9, wallThick, t);
     return rightInner(y) + thick;
   }
 
@@ -238,40 +238,14 @@ function renderLongAxis(containerId, view) {
 
   let svg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
 
-  // LV cavity outline
+  // LV cavity outline — sits inside the apical arch
+  const cavityTopY = apexY + 8;
   svg += `<path d="
-    M ${cx} ${apexY}
-    Q ${leftInner(apexY)} ${apexY + 20}, ${leftInner(baseY)} ${baseY}
+    M ${cx} ${cavityTopY}
+    Q ${leftInner(apexY)} ${apexY + 28}, ${leftInner(baseY)} ${baseY}
     L ${rightInner(baseY)} ${baseY}
-    Q ${rightInner(apexY)} ${apexY + 20}, ${cx} ${apexY}
+    Q ${rightInner(apexY)} ${apexY + 28}, ${cx} ${cavityTopY}
     Z" fill="#f8f8f8" stroke="none"/>`;
-
-  // Atria
-  const laLeft = leftOuter(baseY);
-  const laRight = leftInner(baseY);
-  const raLeft = rightInner(baseY);
-  const raRight = rightOuter(baseY);
-
-  svg += `<path d="
-    M ${laLeft} ${atriaTop}
-    L ${laRight} ${atriaTop}
-    Q ${laRight + 5} ${atriaBot}, ${(laLeft + laRight) / 2} ${atriaBot}
-    Q ${laLeft - 5} ${atriaBot}, ${laLeft} ${atriaTop}
-    Z" fill="none" stroke="#bbb" stroke-width="1.5"/>`;
-
-  if (!view.hasAorta) {
-    svg += `<path d="
-      M ${raLeft} ${atriaTop}
-      L ${raRight} ${atriaTop}
-      Q ${raRight + 5} ${atriaBot}, ${(raLeft + raRight) / 2} ${atriaBot}
-      Q ${raLeft - 5} ${atriaBot}, ${raLeft} ${atriaTop}
-      Z" fill="none" stroke="#bbb" stroke-width="1.5"/>`;
-  }
-
-  svg += `<text x="${(laLeft + laRight) / 2}" y="${(atriaTop + atriaBot) / 2 + 5}" fill="#aaa" font-size="9" font-weight="500" text-anchor="middle" dominant-baseline="central">${view.leftAtrium}</text>`;
-  if (!view.hasAorta) {
-    svg += `<text x="${(raLeft + raRight) / 2}" y="${(atriaTop + atriaBot) / 2 + 5}" fill="#aaa" font-size="9" font-weight="500" text-anchor="middle" dominant-baseline="central">${view.rightAtrium}</text>`;
-  }
 
   // RV free wall
   if (view.hasRV) {
@@ -283,22 +257,22 @@ function renderLongAxis(containerId, view) {
       svg += `<path d="
         M ${rightOuter(rvTopY)} ${rvTopY}
         C ${rvPeakX} ${rvTopY + 40}, ${rvPeakX} ${rvBotY - 40}, ${rightOuter(yBasalBot) + 15} ${rvBotY}
-        " fill="none" stroke="#bbb" stroke-width="1.5"/>`;
-      svg += `<text x="${rvPeakX - 15}" y="${rvMidY}" fill="#999" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="central">RV</text>`;
+        " fill="none" stroke="#bbb" stroke-width="1.8"/>`;
+      svg += `<text x="${rvPeakX + 14}" y="${rvMidY}" fill="#999" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="central">RV</text>`;
     } else {
       const rvPeakX = leftOuter(rvMidY) - 55;
       svg += `<path d="
         M ${leftOuter(rvTopY)} ${rvTopY}
         C ${rvPeakX} ${rvTopY + 40}, ${rvPeakX} ${rvBotY - 40}, ${leftOuter(yBasalBot) - 15} ${rvBotY}
-        " fill="none" stroke="#bbb" stroke-width="1.5"/>`;
-      svg += `<text x="${rvPeakX + 15}" y="${rvMidY}" fill="#999" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="central">RV</text>`;
+        " fill="none" stroke="#bbb" stroke-width="1.8"/>`;
+      svg += `<text x="${rvPeakX - 14}" y="${rvMidY}" fill="#999" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="central">RV</text>`;
     }
   }
 
   // Aortic root / LVOT
   if (view.hasAorta) {
     const aoTopY = yBasalBot;
-    const aoEndY = atriaBot;
+    const aoEndY = yBasalBot + 30;
     const aoRightX = rightInner(aoTopY) - 4;
     const aoLeftX = aoRightX - 30;
     const aoTiltX = 25;
@@ -307,11 +281,11 @@ function renderLongAxis(containerId, view) {
     svg += `<path d="
       M ${aoLeftX} ${aoTopY}
       C ${aoLeftX + 5} ${aoTopY + 30}, ${aoEndLeftX - 5} ${aoEndY - 20}, ${aoEndLeftX} ${aoEndY}
-      " fill="none" stroke="#bbb" stroke-width="1.5"/>`;
+      " fill="none" stroke="#bbb" stroke-width="1.8"/>`;
     svg += `<path d="
       M ${aoRightX} ${aoTopY}
       C ${aoRightX + 5} ${aoTopY + 30}, ${aoEndRightX - 5} ${aoEndY - 20}, ${aoEndRightX} ${aoEndY}
-      " fill="none" stroke="#bbb" stroke-width="1.5"/>`;
+      " fill="none" stroke="#bbb" stroke-width="1.8"/>`;
     const aoLabelX = (aoLeftX + aoRightX) / 2 + aoTiltX / 2;
     const aoLabelY = (aoTopY + aoEndY) / 2;
     svg += `<text x="${aoLabelX}" y="${aoLabelY}" fill="#999" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="central">Ao</text>`;
@@ -334,8 +308,9 @@ function renderLongAxis(containerId, view) {
     const midY = (yt + yb) / 2;
     const lx = (leftOuter(midY) + leftInner(midY)) / 2;
 
-    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" />`;
-    svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label">${segId}</text>`;
+    const scoreLabel = info.value === null ? "" : info.value;
+    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label">${scoreLabel}</text>`;
   }
 
   // Right wall segments
@@ -355,29 +330,34 @@ function renderLongAxis(containerId, view) {
     const midY = (yt + yb) / 2;
     const lx = (rightOuter(midY) + rightInner(midY)) / 2;
 
-    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" />`;
-    svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label">${segId}</text>`;
+    const scoreLabel2 = info.value === null ? "" : info.value;
+    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label">${scoreLabel2}</text>`;
   }
 
-  // Apex cap
+  // Apex cap — rounded gothic arch where the two walls meet at a pointed rounded peak
   const apexInfo = getScoreInfo(state.cases[state.currentCase].scores[view.apex]);
-  const apexCapTop = apexY - 12;
   const loTop = leftOuter(yApicalTop);
   const roTop = rightOuter(yApicalTop);
   const liTop = leftInner(yApicalTop);
   const riTop = rightInner(yApicalTop);
+  const outerPeakY = apexY - 6;
+  const innerPeakY = apexY + 8;
   svg += `<path d="
     M ${loTop} ${yApicalTop}
-    C ${loTop} ${apexCapTop - 10}, ${roTop} ${apexCapTop - 10}, ${roTop} ${yApicalTop}
+    C ${loTop} ${outerPeakY}, ${cx - 2} ${outerPeakY}, ${cx} ${outerPeakY}
+    C ${cx + 2} ${outerPeakY}, ${roTop} ${outerPeakY}, ${roTop} ${yApicalTop}
     L ${riTop} ${yApicalTop}
-    C ${riTop} ${apexCapTop + 12}, ${liTop} ${apexCapTop + 12}, ${liTop} ${yApicalTop}
-    Z" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" />`;
-  const apexLabelY = apexCapTop + 18;
-  svg += `<text x="${cx}" y="${apexLabelY}" fill="${apexInfo.textColor}" class="segment-label" style="font-size:11px">${view.apex}</text>`;
+    C ${riTop} ${innerPeakY}, ${cx + 2} ${innerPeakY}, ${cx} ${innerPeakY}
+    C ${cx - 2} ${innerPeakY}, ${liTop} ${innerPeakY}, ${liTop} ${yApicalTop}
+    Z" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" onmousemove="showSegTooltip(event, ${view.apex})" onmouseleave="hideSegTooltip()" />`;
+  const apexLabelY = apexY + 2;
+  const apexScoreLabel = apexInfo.value === null ? "" : apexInfo.value;
+  svg += `<text x="${cx}" y="${apexLabelY}" fill="${apexInfo.textColor}" class="segment-label" style="font-size:11px">${apexScoreLabel}</text>`;
 
-  // Wall labels
-  svg += `<text x="${leftOuter(baseY) - 3}" y="${baseY + 15}" fill="var(--text-muted)" font-size="10" font-weight="600" text-anchor="start">${view.leftLabel}</text>`;
-  svg += `<text x="${rightOuter(baseY) + 3}" y="${baseY + 15}" fill="var(--text-muted)" font-size="10" font-weight="600" text-anchor="end">${view.rightLabel}</text>`;
+  // Wall labels — positioned just outside the basal segment, aligned to the base
+  svg += `<text x="${leftOuter(baseY) - 5}" y="${baseY}" fill="var(--text-muted)" font-size="11" font-weight="700" text-anchor="end" dominant-baseline="central">${view.leftLabel}</text>`;
+  svg += `<text x="${rightOuter(baseY) + 5}" y="${baseY}" fill="var(--text-muted)" font-size="11" font-weight="700" text-anchor="start" dominant-baseline="central">${view.rightLabel}</text>`;
 
   svg += `</svg>`;
   document.getElementById(containerId).innerHTML = svg;
@@ -413,9 +393,29 @@ function cycleScore(event, segId) {
   saveState();
 }
 
+function showSegTooltip(event, segId) {
+  const tooltip = document.getElementById("segmentTooltip");
+  tooltip.textContent = getSegName(segId);
+
+  let left = event.clientX + 12;
+  let top = event.clientY - 32;
+
+  if (left + 160 > window.innerWidth) left = event.clientX - 160;
+  if (top < 10) top = event.clientY + 14;
+
+  tooltip.style.left = left + "px";
+  tooltip.style.top = top + "px";
+  tooltip.classList.add("visible");
+}
+
+function hideSegTooltip() {
+  document.getElementById("segmentTooltip").classList.remove("visible");
+}
+
 function openPicker(event, segId) {
   event.preventDefault();
   event.stopPropagation();
+  hideSegTooltip();
   pickerSegId = segId;
   const picker = document.getElementById("scorePicker");
   const overlay = document.getElementById("overlay");
