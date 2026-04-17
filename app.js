@@ -29,16 +29,48 @@ const CASE_VIDEOS = [
     ]
   },
   { // Case 2
-    videos: []
+    videos: [
+      { label: "Clip 1", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_1.mp4" },
+      { label: "Clip 2", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_2.mp4" },
+      { label: "Clip 3", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_3.mp4" },
+      { label: "Clip 4", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_4.mp4" },
+      { label: "Clip 5", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_5.mp4" },
+      { label: "Clip 6", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_6.mp4" },
+      { label: "Clip 7", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_7.mp4" },
+      { label: "Clip 8", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_8.mp4" },
+    ]
   },
   { // Case 3
-    videos: []
+    videos: [
+      { label: "Clip 1", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_1.mp4" },
+      { label: "Clip 2", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_2.mp4" },
+      { label: "Clip 3", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_3.mp4" },
+      { label: "Clip 4", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_4.mp4" },
+      { label: "Clip 5", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_5.mp4" },
+      { label: "Clip 6", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_6.mp4" },
+      { label: "Clip 7", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_7.mp4" },
+      { label: "Clip 8", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_8.mp4" },
+    ]
   },
   { // Case 4
-    videos: []
+    videos: [
+      { label: "Clip 1", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_1.mp4" },
+      { label: "Clip 2", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_2.mp4" },
+      { label: "Clip 3", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_3.mp4" },
+      { label: "Clip 4", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_4.mp4" },
+      { label: "Clip 5", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_5.mp4" },
+      { label: "Clip 6", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_6.mp4" },
+      { label: "Clip 7", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_7.mp4" },
+    ]
   },
   { // Case 5
-    videos: []
+    videos: [
+      { label: "Clip 1", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case5_1.mp4" },
+      { label: "Clip 2", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case5_2.mp4" },
+      { label: "Clip 3", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case5_3.mp4" },
+      { label: "Clip 4", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case5_4.mp4" },
+      { label: "Clip 5", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case5_5.mp4" },
+    ]
   },
 ];
 
@@ -138,9 +170,9 @@ function renderRing(containerId, view) {
   const svgW = ringSize + rvPad;
   const svgH = ringSize;
   const cx = rvPad + ringSize / 2, cy = ringSize / 2;
-  const outerR = 88, innerR = 35;
+  const outerR = 88, innerR = 58;
   const hasApex = view.apex !== undefined;
-  const apexR = hasApex ? 22 : 0;
+  const apexR = hasApex ? 45 : 0;
   const effectiveInnerR = hasApex ? apexR + 6 : innerR;
 
   let svg = `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`;
@@ -174,14 +206,15 @@ function renderRing(containerId, view) {
   }
 
   // RV reference — curved outline on the septal (left) side
-  const rvStartAngle = view.sectors === 6 ? 210 : 225;
-  const rvEndAngle = view.sectors === 6 ? 330 : 315;
+  const rvStartAngle = view.sectors === 6 ? 225 : 225;
+  const rvEndAngle = view.sectors === 6 ? 315 : 315;
   const rvBaseR = outerR + 3;
   const rvP1 = polarToCart(cx, cy, rvBaseR, rvStartAngle);
   const rvP2 = polarToCart(cx, cy, rvBaseR, rvEndAngle);
-  const rvBulge = view.sectors === 6 ? 80 : 65;
-  const rvC1 = polarToCart(cx, cy, outerR + rvBulge, rvStartAngle + 20);
-  const rvC2 = polarToCart(cx, cy, outerR + rvBulge, rvEndAngle - 20);
+  const rvBulge = view.sectors === 6 ? 110 : 65;
+  const rvCtrlOffset = view.sectors === 6 ? 10 : 20;
+  const rvC1 = polarToCart(cx, cy, outerR + rvBulge, rvStartAngle + rvCtrlOffset);
+  const rvC2 = polarToCart(cx, cy, outerR + rvBulge, rvEndAngle - rvCtrlOffset);
   svg += `<path d="M ${rvP1.x} ${rvP1.y} C ${rvC1.x} ${rvC1.y} ${rvC2.x} ${rvC2.y} ${rvP2.x} ${rvP2.y}" fill="none" stroke="#bbb" stroke-width="1.8"/>`;
 
   svg += `</svg>`;
@@ -251,19 +284,21 @@ function renderLongAxis(containerId, view) {
   if (view.hasRV) {
     const rvMidY = (yApicalTop + yBasalBot) / 2;
     const rvTopY = yApicalTop + 5;
-    const rvBotY = yBasalBot + 15;
+    const rvBotY = yBasalBot;
     if (view.hasAorta) {
       const rvPeakX = rightOuter(rvMidY) + 55;
+      const rvBaseX = rightOuter(yBasalBot) + 50;
       svg += `<path d="
         M ${rightOuter(rvTopY)} ${rvTopY}
-        C ${rvPeakX} ${rvTopY + 40}, ${rvPeakX} ${rvBotY - 40}, ${rightOuter(yBasalBot) + 15} ${rvBotY}
+        C ${rvPeakX} ${rvTopY + 40}, ${rvPeakX + 10} ${rvBotY - 25}, ${rvBaseX} ${rvBotY}
         " fill="none" stroke="#bbb" stroke-width="1.8"/>`;
       svg += `<text x="${rvPeakX + 14}" y="${rvMidY}" fill="#999" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="central">RV</text>`;
     } else {
       const rvPeakX = leftOuter(rvMidY) - 55;
+      const rvBaseX = leftOuter(yBasalBot) - 50;
       svg += `<path d="
         M ${leftOuter(rvTopY)} ${rvTopY}
-        C ${rvPeakX} ${rvTopY + 40}, ${rvPeakX} ${rvBotY - 40}, ${leftOuter(yBasalBot) - 15} ${rvBotY}
+        C ${rvPeakX} ${rvTopY + 40}, ${rvPeakX - 10} ${rvBotY - 25}, ${rvBaseX} ${rvBotY}
         " fill="none" stroke="#bbb" stroke-width="1.8"/>`;
       svg += `<text x="${rvPeakX - 14}" y="${rvMidY}" fill="#999" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="central">RV</text>`;
     }
@@ -698,31 +733,8 @@ function loadState() {
 document.getElementById("caseComments").addEventListener("input", saveState);
 
 // ============================================================
-// EXPORT
+// PAYLOAD
 // ============================================================
-function buildCSV() {
-  const segHeaders = SEGMENTS.map(s => `Seg${s.id}_${s.name.replace(/\s+/g, "")}`);
-  const header = ["RaterID", "Email", "Hospital", "Role", "CaseNumber", ...segHeaders, "WMSI", "Comments"].join(",");
-
-  const rows = [];
-  for (let c = 1; c <= 5; c++) {
-    const scores = state.cases[c].scores;
-    const segValues = SEGMENTS.map(s => scores[s.id] === null ? "" : scores[s.id]);
-    let sum = 0, count = 0;
-    for (let s = 1; s <= 17; s++) {
-      const v = scores[s];
-      if (v !== null) { sum += v === 0 ? 1 : v; count++; }
-    }
-    const wmsi = count > 0 ? (sum / count).toFixed(2) : "";
-    const comments = (state.cases[c].comments || "").replace(/"/g, '""');
-    const name = (state.rater.name || "").replace(/"/g, '""');
-    const email = (state.rater.email || "").replace(/"/g, '""');
-    const hospital = (state.rater.hospital || "").replace(/"/g, '""');
-    rows.push([`"${name}"`, `"${email}"`, `"${hospital}"`, state.rater.role, c, ...segValues, wmsi, `"${comments}"`].join(","));
-  }
-  return header + "\n" + rows.join("\n");
-}
-
 function buildPayload() {
   const cases = [];
   for (let c = 1; c <= 5; c++) {
@@ -740,24 +752,6 @@ function buildPayload() {
     });
   }
   return { rater: { ...state.rater }, cases };
-}
-
-function downloadBackupCSV() {
-  const csv = buildCSV();
-  const safeName = (state.rater.name || "unknown").replace(/\s+/g, "_");
-  downloadFile(csv, `echoWMA_${safeName}_${Date.now()}.csv`, "text/csv");
-}
-
-function downloadFile(content, filename, mime) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
 // ============================================================
@@ -866,7 +860,6 @@ function showReviewPanel() {
   html += `<div class="review-actions">
     <button class="nav-btn" onclick="hideReviewPanel()">Go Back</button>
     <button class="nav-btn primary" onclick="submitSurvey()">Submit</button>
-    <button class="nav-btn" onclick="downloadBackupCSV()">Download CSV</button>
   </div>`;
 
   panel.innerHTML = html;
@@ -889,26 +882,18 @@ async function submitSurvey() {
   const submitBtn = document.querySelector('#reviewPanel .nav-btn.primary');
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Submitting..."; }
 
-  let success = false;
-  if (SUBMIT_URL) {
-    try {
-      const resp = await fetch(SUBMIT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (resp.ok) {
-        success = true;
-      } else {
-        throw new Error(`Server returned ${resp.status}`);
-      }
-    } catch (err) {
-      if (window.Sentry) Sentry.captureException(err, { tags: { action: "submit_survey" } });
-      alert("Email submission failed. A CSV backup will be downloaded instead.\n\nPlease email the file to the study coordinator.");
-      downloadBackupCSV();
-    }
-  } else {
-    downloadBackupCSV();
+  try {
+    const resp = await fetch(SUBMIT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+  } catch (err) {
+    if (window.Sentry) Sentry.captureException(err, { tags: { action: "submit_survey" } });
+    alert("Submission failed. Please check your connection and try again.\n\nIf the problem persists, contact the study coordinator.");
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit"; }
+    return;
   }
 
   state.submitted = true;
@@ -951,7 +936,7 @@ function init() {
     document.getElementById("intakeModal").classList.add("hidden");
     document.getElementById("successScreen").classList.remove("hidden");
     document.getElementById("successScreen").querySelector("h2").textContent = "Already Submitted";
-    document.getElementById("successScreen").querySelector("p").textContent = "You have already submitted your responses. You can download a backup or start a new survey.";
+    document.getElementById("successScreen").querySelector("p").textContent = "You have already submitted your responses. You can start a new survey if needed.";
     updateRaterDisplay();
     return;
   }
