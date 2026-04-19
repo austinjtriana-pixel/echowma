@@ -1,11 +1,52 @@
 // Netlify Function: receives survey submissions, stores in Supabase, and emails CSV via Resend
 const https = require("https");
 const Sentry = require("@sentry/node");
-Sentry.init({ dsn: process.env.SENTRY_DSN || "" });
+if (process.env.SENTRY_DSN) Sentry.init({ dsn: process.env.SENTRY_DSN });
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const TO_EMAIL = process.env.TO_EMAIL || "austin.j.triana@gmail.com";
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
+  .split(",").map((o) => o.trim()).filter(Boolean);
+
+// Simple in-memory sliding-window rate limit (per warm container).
+// Not a hard defense on its own, but cheap and blocks casual flooding.
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 5;
+const rateLimitMap = new Map();
+
+const { validatePayload, csvCell, stripCtrl } = require("./validate");
+
+function rateLimitOk(ip) {
+  if (!ip) return true;
+  const now = Date.now();
+  const arr = (rateLimitMap.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT_MAX) {
+    rateLimitMap.set(ip, arr);
+    return false;
+  }
+  arr.push(now);
+  rateLimitMap.set(ip, arr);
+  // Opportunistic cleanup to avoid unbounded growth
+  if (rateLimitMap.size > 10_000) {
+    for (const [k, v] of rateLimitMap) {
+      if (v.every((t) => now - t >= RATE_LIMIT_WINDOW_MS)) rateLimitMap.delete(k);
+    }
+  }
+  return true;
+}
+
+function buildCorsHeaders(event) {
+  const origin = (event.headers && (event.headers.origin || event.headers.Origin)) || "";
+  const allowed = ALLOWED_ORIGINS.includes(origin);
+  return {
+    "Access-Control-Allow-Origin": allowed ? origin : (ALLOWED_ORIGINS[0] || "null"),
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+    "_allowed": allowed ? "1" : "0",
+  };
+}
 
 // fetch fallback for Node <18
 function postJSON(url, reqHeaders, body) {
@@ -32,68 +73,11 @@ async function safeFetch(url, options) {
   return postJSON(url, options.headers, options.body);
 }
 
-function validatePayload(payload) {
-  const errors = [];
-
-  if (!payload.rater || typeof payload.rater !== "object") {
-    errors.push("Missing rater object");
-  } else {
-    if (!payload.rater.name || typeof payload.rater.name !== "string" || payload.rater.name.trim().length === 0) {
-      errors.push("Rater name is required");
-    } else if (payload.rater.name.length > 200) {
-      errors.push("Rater name too long");
-    }
-    if (!payload.rater.email || typeof payload.rater.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.rater.email)) {
-      errors.push("Valid rater email is required");
-    } else if (payload.rater.email.length > 254) {
-      errors.push("Rater email too long");
-    }
-    if (payload.rater.hospital && typeof payload.rater.hospital !== "string") {
-      errors.push("Hospital must be a string");
-    }
-    if (payload.rater.role && !["Faculty", "Fellow"].includes(payload.rater.role)) {
-      errors.push("Invalid role value");
-    }
-  }
-
-  if (!Array.isArray(payload.cases) || payload.cases.length === 0) {
-    errors.push("Cases array is required and must not be empty");
-  } else if (payload.cases.length > 10) {
-    errors.push("Too many cases");
-  } else {
-    payload.cases.forEach((c, i) => {
-      if (!c.caseNumber || typeof c.caseNumber !== "number") {
-        errors.push(`Case ${i}: missing or invalid caseNumber`);
-      }
-      if (!c.scores || typeof c.scores !== "object") {
-        errors.push(`Case ${i}: missing scores object`);
-      } else {
-        for (const [seg, val] of Object.entries(c.scores)) {
-          const segNum = parseInt(seg);
-          if (isNaN(segNum) || segNum < 1 || segNum > 17) {
-            errors.push(`Case ${i}: invalid segment number ${seg}`);
-          }
-          if (val !== null && (typeof val !== "number" || !Number.isInteger(val) || val < 0 || val > 5)) {
-            errors.push(`Case ${i}: segment ${seg} score must be null or integer 0-5`);
-          }
-        }
-      }
-      if (c.wmsi !== null && c.wmsi !== undefined && typeof c.wmsi !== "number") {
-        errors.push(`Case ${i}: WMSI must be a number or null`);
-      }
-    });
-  }
-
-  return errors;
-}
-
 exports.handler = async (event) => {
-  // CORS headers
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
+  const rawHeaders = buildCorsHeaders(event);
+  const originAllowed = rawHeaders._allowed === "1";
+  const headers = { ...rawHeaders };
+  delete headers._allowed;
 
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers };
@@ -101,6 +85,26 @@ exports.handler = async (event) => {
 
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, headers, body: "Method not allowed" };
+  }
+
+  // If ALLOWED_ORIGINS is configured, reject cross-origin browser requests.
+  // Requests without an Origin header (same-origin, curl) are allowed through.
+  const originHeader = (event.headers && (event.headers.origin || event.headers.Origin)) || "";
+  if (ALLOWED_ORIGINS.length > 0 && originHeader && !originAllowed) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: "Origin not allowed" }) };
+  }
+
+  // Rate limit by client IP (Netlify forwards via x-nf-client-connection-ip / x-forwarded-for)
+  const ip =
+    (event.headers && (event.headers["x-nf-client-connection-ip"] ||
+      (event.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
+      event.headers["client-ip"])) || "";
+  if (!rateLimitOk(ip)) {
+    return {
+      statusCode: 429,
+      headers: { ...headers, "Retry-After": "60" },
+      body: JSON.stringify({ error: "Too many requests" }),
+    };
   }
 
   try {
@@ -118,23 +122,24 @@ exports.handler = async (event) => {
 
     const { rater, cases, timestamp } = payload;
 
+    rater.name = stripCtrl(rater.name);
+    if (rater.hospital) rater.hospital = stripCtrl(rater.hospital);
+
     // ---- Supabase insert ----
     if (SUPABASE_URL && SUPABASE_KEY) {
-      const rows = cases.map((c) => ({
-        rater_name: rater.name,
-        rater_email: rater.email || null,
-        hospital: rater.hospital || null,
-        role: rater.role || null,
-        case_number: c.caseNumber,
-        seg1: c.scores[1] ?? null, seg2: c.scores[2] ?? null, seg3: c.scores[3] ?? null,
-        seg4: c.scores[4] ?? null, seg5: c.scores[5] ?? null, seg6: c.scores[6] ?? null,
-        seg7: c.scores[7] ?? null, seg8: c.scores[8] ?? null, seg9: c.scores[9] ?? null,
-        seg10: c.scores[10] ?? null, seg11: c.scores[11] ?? null, seg12: c.scores[12] ?? null,
-        seg13: c.scores[13] ?? null, seg14: c.scores[14] ?? null, seg15: c.scores[15] ?? null,
-        seg16: c.scores[16] ?? null, seg17: c.scores[17] ?? null,
-        wmsi: c.wmsi ?? null,
-        comments: c.comments || null,
-      }));
+      const rows = cases.map((c) => {
+        const row = {
+          rater_name: rater.name,
+          rater_email: rater.email || null,
+          hospital: rater.hospital || null,
+          role: rater.role || null,
+          case_number: c.caseNumber,
+          wmsi: c.wmsi ?? null,
+          comments: c.comments || null,
+        };
+        for (let s = 1; s <= 17; s++) row[`seg${s}`] = c.scores[s] ?? null;
+        return row;
+      });
 
       const dbResp = await safeFetch(`${SUPABASE_URL}/rest/v1/submissions`, {
         method: "POST",
@@ -176,11 +181,16 @@ exports.handler = async (event) => {
       for (let s = 1; s <= 17; s++) {
         segValues.push(c.scores[s] === null ? "" : c.scores[s]);
       }
-      const comments = (c.comments || "").replace(/"/g, '""');
-      const name = (rater.name || "").replace(/"/g, '""');
-      const email = (rater.email || "").replace(/"/g, '""');
-      const hospital = (rater.hospital || "").replace(/"/g, '""');
-      return [`"${name}"`, `"${email}"`, `"${hospital}"`, rater.role, c.caseNumber, ...segValues, c.wmsi ?? "", `"${comments}"`].join(",");
+      return [
+        csvCell(rater.name),
+        csvCell(rater.email),
+        csvCell(rater.hospital),
+        csvCell(rater.role),
+        c.caseNumber,
+        ...segValues,
+        c.wmsi ?? "",
+        csvCell(c.comments),
+      ].join(",");
     });
 
     const csv = csvHeader + "\n" + csvRows.join("\n");
@@ -217,7 +227,7 @@ The CSV file is attached. Data has also been saved to Supabase.
       text: emailBody,
       attachments: [
         {
-          filename: `echoWMA_${rater.name.replace(/\s+/g, "_")}_${Date.now()}.csv`,
+          filename: `echoWMA_${rater.name.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 100)}_${Date.now()}.csv`,
           content: csvBase64,
         },
       ],

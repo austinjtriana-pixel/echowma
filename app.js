@@ -37,19 +37,16 @@ const CASE_VIDEOS = [
       { label: "Clip 5", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_5.mp4" },
       { label: "Clip 6", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_6.mp4" },
       { label: "Clip 7", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_7.mp4" },
-      { label: "Clip 8", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case2_8.mp4" },
     ]
   },
   { // Case 3
     videos: [
-      { label: "Clip 1", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_1.mp4" },
-      { label: "Clip 2", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_2.mp4" },
-      { label: "Clip 3", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_3.mp4" },
-      { label: "Clip 4", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_4.mp4" },
-      { label: "Clip 5", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_5.mp4" },
-      { label: "Clip 6", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_6.mp4" },
-      { label: "Clip 7", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_7.mp4" },
-      { label: "Clip 8", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_8.mp4" },
+      { label: "Clip 1", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_3.mp4" },
+      { label: "Clip 2", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_4.mp4" },
+      { label: "Clip 3", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_5.mp4" },
+      { label: "Clip 4", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_6.mp4" },
+      { label: "Clip 5", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_7.mp4" },
+      { label: "Clip 6", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case3_8.mp4" },
     ]
   },
   { // Case 4
@@ -161,6 +158,27 @@ function getSegName(id) {
   return SEGMENTS.find(s => s.id === id)?.name || "";
 }
 
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+function segAriaLabel(segId) {
+  const score = state.cases[state.currentCase].scores[segId];
+  const info = getScoreInfo(score);
+  const name = getSegName(segId);
+  if (score === null || score === undefined) return `${name}, not assessed`;
+  return `${name}, score ${score} (${info.label})`;
+}
+
+function handleSegKey(event, segId) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    openPicker(event, segId);
+  }
+}
+
 // ============================================================
 // RENDER SHORT-AXIS RINGS
 // ============================================================
@@ -193,16 +211,16 @@ function renderRing(containerId, view) {
     const lp = polarToCart(cx, cy, midR, midAngle);
 
     const scoreLabel = info.value === null ? "" : info.value;
-    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
-    svg += `<text x="${lp.x}" y="${lp.y}" fill="${info.textColor}" class="segment-label">${scoreLabel}</text>`;
+    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" role="button" tabindex="0" aria-label="${segAriaLabel(segId)}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onkeydown="handleSegKey(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<text x="${lp.x}" y="${lp.y}" fill="${info.textColor}" class="segment-label" data-seg-label="${segId}">${scoreLabel}</text>`;
   });
 
   // Apex center circle
   if (hasApex) {
     const apexInfo = getScoreInfo(state.cases[state.currentCase].scores[view.apex]);
     const apexScoreLabel = apexInfo.value === null ? "" : apexInfo.value;
-    svg += `<circle cx="${cx}" cy="${cy}" r="${apexR}" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" onmousemove="showSegTooltip(event, ${view.apex})" onmouseleave="hideSegTooltip()" />`;
-    svg += `<text x="${cx}" y="${cy}" fill="${apexInfo.textColor}" class="segment-label">${apexScoreLabel}</text>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${apexR}" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" role="button" tabindex="0" aria-label="${segAriaLabel(view.apex)}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" onkeydown="handleSegKey(event, ${view.apex})" onmousemove="showSegTooltip(event, ${view.apex})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<text x="${cx}" y="${cy}" fill="${apexInfo.textColor}" class="segment-label" data-seg-label="${view.apex}">${apexScoreLabel}</text>`;
   }
 
   // RV reference — curved outline on the septal (left) side
@@ -344,8 +362,8 @@ function renderLongAxis(containerId, view) {
     const lx = (leftOuter(midY) + leftInner(midY)) / 2;
 
     const scoreLabel = info.value === null ? "" : info.value;
-    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
-    svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label">${scoreLabel}</text>`;
+    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" role="button" tabindex="0" aria-label="${segAriaLabel(segId)}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onkeydown="handleSegKey(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label" data-seg-label="${segId}">${scoreLabel}</text>`;
   }
 
   // Right wall segments
@@ -366,8 +384,8 @@ function renderLongAxis(containerId, view) {
     const lx = (rightOuter(midY) + rightInner(midY)) / 2;
 
     const scoreLabel2 = info.value === null ? "" : info.value;
-    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
-    svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label">${scoreLabel2}</text>`;
+    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" role="button" tabindex="0" aria-label="${segAriaLabel(segId)}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onkeydown="handleSegKey(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label" data-seg-label="${segId}">${scoreLabel2}</text>`;
   }
 
   // Apex cap — rounded gothic arch where the two walls meet at a pointed rounded peak
@@ -385,10 +403,10 @@ function renderLongAxis(containerId, view) {
     L ${riTop} ${yApicalTop}
     C ${riTop} ${innerPeakY}, ${cx + 2} ${innerPeakY}, ${cx} ${innerPeakY}
     C ${cx - 2} ${innerPeakY}, ${liTop} ${innerPeakY}, ${liTop} ${yApicalTop}
-    Z" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" onmousemove="showSegTooltip(event, ${view.apex})" onmouseleave="hideSegTooltip()" />`;
+    Z" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" role="button" tabindex="0" aria-label="${segAriaLabel(view.apex)}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" onkeydown="handleSegKey(event, ${view.apex})" onmousemove="showSegTooltip(event, ${view.apex})" onmouseleave="hideSegTooltip()" />`;
   const apexLabelY = apexY + 2;
   const apexScoreLabel = apexInfo.value === null ? "" : apexInfo.value;
-  svg += `<text x="${cx}" y="${apexLabelY}" fill="${apexInfo.textColor}" class="segment-label" style="font-size:11px">${apexScoreLabel}</text>`;
+  svg += `<text x="${cx}" y="${apexLabelY}" fill="${apexInfo.textColor}" class="segment-label" data-seg-label="${view.apex}" style="font-size:11px">${apexScoreLabel}</text>`;
 
   // Wall labels — positioned just outside the basal segment, aligned to the base
   svg += `<text x="${leftOuter(baseY) - 5}" y="${baseY}" fill="var(--text-muted)" font-size="11" font-weight="700" text-anchor="end" dominant-baseline="central">${view.leftLabel}</text>`;
@@ -411,6 +429,23 @@ function renderAll() {
   updateWMSI();
 }
 
+// Patch only the changed segment's path/circle fill + text label, instead of
+// re-rendering all 6 diagrams from innerHTML on every score click.
+function updateSegmentDOM(segId) {
+  const score = state.cases[state.currentCase].scores[segId];
+  const info = getScoreInfo(score);
+  const label = info.value === null ? "" : String(info.value);
+  const aria = segAriaLabel(segId);
+  document.querySelectorAll(`[data-segment="${segId}"]`).forEach((el) => {
+    el.setAttribute("fill", info.color);
+    el.setAttribute("aria-label", aria);
+  });
+  document.querySelectorAll(`[data-seg-label="${segId}"]`).forEach((el) => {
+    el.setAttribute("fill", info.textColor);
+    el.textContent = label;
+  });
+}
+
 // ============================================================
 // SCORE PICKER
 // ============================================================
@@ -423,7 +458,8 @@ function cycleScore(event, segId) {
   if (current === null) scores[segId] = 1;
   else if (current >= 5) scores[segId] = null;
   else scores[segId] = current + 1;
-  renderAll();
+  updateSegmentDOM(segId);
+  updateWMSI();
   updateCaseTabs();
   saveState();
 }
@@ -493,7 +529,8 @@ document.getElementById("overlay").addEventListener("click", closePicker);
 function setScore(segId, value) {
   state.cases[state.currentCase].scores[segId] = value;
   closePicker();
-  renderAll();
+  updateSegmentDOM(segId);
+  updateWMSI();
   updateCaseTabs();
   saveState();
 }
@@ -504,8 +541,9 @@ function setScore(segId, value) {
 function setAllScores(value) {
   for (let s = 1; s <= 17; s++) {
     state.cases[state.currentCase].scores[s] = value;
+    updateSegmentDOM(s);
   }
-  renderAll();
+  updateWMSI();
   updateCaseTabs();
   saveState();
 }
@@ -601,6 +639,24 @@ function updateNav() {
 // ============================================================
 // VIDEO (multi-clip grid per case)
 // ============================================================
+let _tileVideoObserver = null;
+
+function observeTileVideos(container) {
+  if (_tileVideoObserver) _tileVideoObserver.disconnect();
+  if (typeof IntersectionObserver === "undefined") {
+    container.querySelectorAll("video").forEach((v) => { v.play().catch(() => {}); });
+    return;
+  }
+  _tileVideoObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const v = entry.target;
+      if (entry.isIntersecting) v.play().catch(() => {});
+      else v.pause();
+    });
+  }, { threshold: 0.25 });
+  container.querySelectorAll("video").forEach((v) => _tileVideoObserver.observe(v));
+}
+
 function loadVideo(caseNum) {
   const container = document.getElementById("videoContainer");
   const caseVideos = CASE_VIDEOS[caseNum - 1]?.videos || [];
@@ -613,15 +669,16 @@ function loadVideo(caseNum) {
     return;
   }
 
-  // Multi-clip grid: render all clips simultaneously, autoplaying + looped
+  // Multi-clip grid: render all clips, but only play those in view (perf on mobile)
   if (caseVideos.length > 1) {
     const tiles = caseVideos.map((v, i) => `
       <div class="video-tile" onclick="openVideoModal(${caseNum}, ${i})">
-        <video src="${v.url}" autoplay loop muted playsinline preload="metadata"></video>
+        <video src="${v.url}" loop muted playsinline preload="metadata"></video>
         <div class="tile-label">${v.label || `Clip ${i + 1}`}</div>
       </div>
     `).join("");
     container.innerHTML = `<div class="video-grid">${tiles}</div>`;
+    observeTileVideos(container);
     return;
   }
 
@@ -730,7 +787,11 @@ function loadState() {
 }
 
 // Auto-save comments
-document.getElementById("caseComments").addEventListener("input", saveState);
+let _commentsSaveTimer;
+document.getElementById("caseComments").addEventListener("input", () => {
+  clearTimeout(_commentsSaveTimer);
+  _commentsSaveTimer = setTimeout(saveState, 300);
+});
 
 // ============================================================
 // PAYLOAD
@@ -818,8 +879,8 @@ function showIntakeModal() {
 function updateRaterDisplay() {
   const info = document.getElementById("raterInfo");
   if (state.rater.name) {
-    const emailPart = state.rater.email ? ` | ${state.rater.email}` : "";
-    info.innerHTML = `<span>${state.rater.name}${emailPart} | ${state.rater.hospital} | ${state.rater.role}</span><button onclick="showIntakeModal()">Edit</button>`;
+    const emailPart = state.rater.email ? ` | ${escapeHtml(state.rater.email)}` : "";
+    info.innerHTML = `<span>${escapeHtml(state.rater.name)}${emailPart} | ${escapeHtml(state.rater.hospital)} | ${escapeHtml(state.rater.role)}</span><button onclick="showIntakeModal()">Edit</button>`;
   } else {
     info.innerHTML = "";
   }
@@ -839,7 +900,7 @@ function showReviewPanel() {
 
   let html = `<h2>Review Your Responses</h2>
     <p class="review-subtitle">Please review your scores before submitting.</p>
-    <div class="review-rater"><strong>${state.rater.name}</strong> &mdash; ${state.rater.email} &mdash; ${state.rater.hospital} &mdash; ${state.rater.role}</div>`;
+    <div class="review-rater"><strong>${escapeHtml(state.rater.name)}</strong> &mdash; ${escapeHtml(state.rater.email)} &mdash; ${escapeHtml(state.rater.hospital)} &mdash; ${escapeHtml(state.rater.role)}</div>`;
 
   for (let c = 1; c <= 5; c++) {
     const scored = countScored(c);
@@ -856,6 +917,8 @@ function showReviewPanel() {
       <div class="case-stats">${scored}/17 scored &mdash; WMSI: ${wmsi}</div>
     </div>`;
   }
+
+  html += `<div id="submitErrorBanner" class="submit-error-banner" style="display:none; background:#fee; color:#900; border:1px solid #c66; padding:12px; border-radius:6px; margin:12px 0;">Submission failed. Please check your connection and try again. If the problem persists, contact the study coordinator.</div>`;
 
   html += `<div class="review-actions">
     <button class="nav-btn" onclick="hideReviewPanel()">Go Back</button>
@@ -882,16 +945,27 @@ async function submitSurvey() {
   const submitBtn = document.querySelector('#reviewPanel .nav-btn.primary');
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Submitting..."; }
 
+  const banner = document.getElementById("submitErrorBanner");
+  if (banner) banner.style.display = "none";
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   try {
     const resp = await fetch(SUBMIT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
   } catch (err) {
+    clearTimeout(timeoutId);
     if (window.Sentry) Sentry.captureException(err, { tags: { action: "submit_survey" } });
-    alert("Submission failed. Please check your connection and try again.\n\nIf the problem persists, contact the study coordinator.");
+    const errorBanner = document.getElementById("submitErrorBanner");
+    if (errorBanner) {
+      errorBanner.style.display = "";
+    }
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit"; }
     return;
   }
