@@ -2,7 +2,7 @@
   "name": "echowma",
   "private": true,
   "scripts": {
-    "test": "node --test tests/**/*.test.js"
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "@sentry/node": "^8.0.0"
