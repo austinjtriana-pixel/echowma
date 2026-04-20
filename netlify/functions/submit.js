@@ -36,9 +36,20 @@ function rateLimitOk(ip) {
   return true;
 }
 
+function isSameOrigin(event) {
+  const origin = (event.headers && (event.headers.origin || event.headers.Origin)) || "";
+  const host = (event.headers && (event.headers.host || event.headers.Host)) || "";
+  if (!origin || !host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 function buildCorsHeaders(event) {
   const origin = (event.headers && (event.headers.origin || event.headers.Origin)) || "";
-  const allowed = ALLOWED_ORIGINS.includes(origin);
+  const allowed = ALLOWED_ORIGINS.includes(origin) || isSameOrigin(event);
   return {
     "Access-Control-Allow-Origin": allowed ? origin : (ALLOWED_ORIGINS[0] || "null"),
     "Access-Control-Allow-Headers": "Content-Type",
