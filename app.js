@@ -51,12 +51,12 @@ const CASE_VIDEOS = [
   },
   { // Case 4
     videos: [
-      { label: "Clip 1", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_1.mp4" },
-      { label: "Clip 2", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_2.mp4" },
-      { label: "Clip 3", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_3.mp4" },
-      { label: "Clip 4", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_4.mp4" },
-      { label: "Clip 5", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_5.mp4" },
-      { label: "Clip 6", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_6.mp4" },
+      { label: "Clip 1", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_1v2.mp4" },
+      { label: "Clip 2", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_2v2.mp4" },
+      { label: "Clip 3", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_3v2.mp4" },
+      { label: "Clip 4", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_4v2.mp4" },
+      { label: "Clip 5", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_5v2.mp4" },
+      { label: "Clip 6", url: "https://ivnugmgqnnvxbdakwzip.supabase.co/storage/v1/object/public/case-videos/Case4_6v2.mp4" },
     ]
   },
   { // Case 5
