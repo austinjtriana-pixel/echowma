@@ -621,6 +621,7 @@ function nextCase() {
     const next = state.currentCase + 1;
     if (next > state.maxVisitedCase) state.maxVisitedCase = next;
     switchCase(next);
+    window.scrollTo(0, 0);
   } else {
     showReviewPanel();
   }
