@@ -752,6 +752,26 @@
     line-height: 1.6;
   }
 
+  /* Review mode */
+  .review-banner {
+    display: none;
+    background: #fef3c7;
+    color: #92400e;
+    text-align: center;
+    padding: 8px 24px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-bottom: 1px solid #fde68a;
+  }
+
+  body.review-mode .review-banner { display: block; }
+  body.review-mode .segment-path { cursor: default !important; }
+  body.review-mode .bulk-actions { display: none; }
+  body.review-mode .comments-section { display: none; }
+  body.review-mode .wmsi-display { display: none; }
+  body.review-mode .completion { display: none; }
+  body.review-mode .rater-info { display: none; }
+
   @media print {
     header { background: #333; }
     .case-tabs, .bulk-actions, .export-section, .nav-section { display: none; }

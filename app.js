@@ -9,6 +9,8 @@ if (window.Sentry) {
   });
 }
 
+const REVIEW_MODE = new URLSearchParams(location.search).has('review');
+
 // ============================================================
 // CONFIGURATION
 // ============================================================
@@ -178,6 +180,13 @@ function handleSegKey(event, segId) {
   }
 }
 
+function segAttrs(segId) {
+  const aria = `aria-label="${segAriaLabel(segId)}"`;
+  const hover = `onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()"`;
+  if (REVIEW_MODE) return `${aria} ${hover}`;
+  return `${aria} role="button" tabindex="0" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onkeydown="handleSegKey(event, ${segId})" ${hover}`;
+}
+
 // ============================================================
 // RENDER SHORT-AXIS RINGS
 // ============================================================
@@ -210,7 +219,7 @@ function renderRing(containerId, view) {
     const lp = polarToCart(cx, cy, midR, midAngle);
 
     const scoreLabel = info.value === null ? "" : info.value;
-    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" role="button" tabindex="0" aria-label="${segAriaLabel(segId)}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onkeydown="handleSegKey(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" ${segAttrs(segId)} />`;
     svg += `<text x="${lp.x}" y="${lp.y}" fill="${info.textColor}" class="segment-label" data-seg-label="${segId}">${scoreLabel}</text>`;
   });
 
@@ -218,7 +227,7 @@ function renderRing(containerId, view) {
   if (hasApex) {
     const apexInfo = getScoreInfo(state.cases[state.currentCase].scores[view.apex]);
     const apexScoreLabel = apexInfo.value === null ? "" : apexInfo.value;
-    svg += `<circle cx="${cx}" cy="${cy}" r="${apexR}" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" role="button" tabindex="0" aria-label="${segAriaLabel(view.apex)}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" onkeydown="handleSegKey(event, ${view.apex})" onmousemove="showSegTooltip(event, ${view.apex})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${apexR}" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" ${segAttrs(view.apex)} />`;
     svg += `<text x="${cx}" y="${cy}" fill="${apexInfo.textColor}" class="segment-label" data-seg-label="${view.apex}">${apexScoreLabel}</text>`;
   }
 
@@ -361,7 +370,7 @@ function renderLongAxis(containerId, view) {
     const lx = (leftOuter(midY) + leftInner(midY)) / 2;
 
     const scoreLabel = info.value === null ? "" : info.value;
-    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" role="button" tabindex="0" aria-label="${segAriaLabel(segId)}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onkeydown="handleSegKey(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" ${segAttrs(segId)} />`;
     svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label" data-seg-label="${segId}">${scoreLabel}</text>`;
   }
 
@@ -383,7 +392,7 @@ function renderLongAxis(containerId, view) {
     const lx = (rightOuter(midY) + rightInner(midY)) / 2;
 
     const scoreLabel2 = info.value === null ? "" : info.value;
-    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" role="button" tabindex="0" aria-label="${segAriaLabel(segId)}" onclick="cycleScore(event, ${segId})" oncontextmenu="openPicker(event, ${segId})" onkeydown="handleSegKey(event, ${segId})" onmousemove="showSegTooltip(event, ${segId})" onmouseleave="hideSegTooltip()" />`;
+    svg += `<path d="${d}" fill="${info.color}" class="segment-path" data-segment="${segId}" ${segAttrs(segId)} />`;
     svg += `<text x="${lx}" y="${midY}" fill="${info.textColor}" class="segment-label" data-seg-label="${segId}">${scoreLabel2}</text>`;
   }
 
@@ -402,7 +411,7 @@ function renderLongAxis(containerId, view) {
     L ${riTop} ${yApicalTop}
     C ${riTop} ${innerPeakY}, ${cx + 2} ${innerPeakY}, ${cx} ${innerPeakY}
     C ${cx - 2} ${innerPeakY}, ${liTop} ${innerPeakY}, ${liTop} ${yApicalTop}
-    Z" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" role="button" tabindex="0" aria-label="${segAriaLabel(view.apex)}" onclick="cycleScore(event, ${view.apex})" oncontextmenu="openPicker(event, ${view.apex})" onkeydown="handleSegKey(event, ${view.apex})" onmousemove="showSegTooltip(event, ${view.apex})" onmouseleave="hideSegTooltip()" />`;
+    Z" fill="${apexInfo.color}" class="segment-path" data-segment="${view.apex}" ${segAttrs(view.apex)} />`;
   const apexLabelY = apexY + 2;
   const apexScoreLabel = apexInfo.value === null ? "" : apexInfo.value;
   svg += `<text x="${cx}" y="${apexLabelY}" fill="${apexInfo.textColor}" class="segment-label" data-seg-label="${view.apex}" style="font-size:11px">${apexScoreLabel}</text>`;
@@ -622,7 +631,7 @@ function nextCase() {
     if (next > state.maxVisitedCase) state.maxVisitedCase = next;
     switchCase(next);
     window.scrollTo(0, 0);
-  } else {
+  } else if (!REVIEW_MODE) {
     showReviewPanel();
   }
 }
@@ -632,7 +641,13 @@ function updateNav() {
   const nextBtn = document.getElementById("nextBtn");
   const progress = document.getElementById("navProgress");
   prevBtn.disabled = state.currentCase <= 1;
-  nextBtn.textContent = state.currentCase === 5 ? "Review & Submit" : "Next Case";
+  if (REVIEW_MODE) {
+    nextBtn.textContent = "Next Case";
+    nextBtn.disabled = state.currentCase >= 5;
+  } else {
+    nextBtn.textContent = state.currentCase === 5 ? "Review & Submit" : "Next Case";
+    nextBtn.disabled = false;
+  }
   progress.textContent = `Case ${state.currentCase} of 5`;
 }
 
@@ -742,6 +757,7 @@ function renderLegend() {
 }
 
 function renderBulkActions() {
+  if (REVIEW_MODE) return;
   const container = document.getElementById("bulkActions");
   container.innerHTML = `
     <button class="bulk-btn" onclick="setAllScores(null)">&#x1f6ab; Clear All</button>
@@ -755,6 +771,7 @@ function renderBulkActions() {
 // LOCALSTORAGE
 // ============================================================
 function saveState() {
+  if (REVIEW_MODE) return;
   const commentsEl = document.getElementById("caseComments");
   if (commentsEl) state.cases[state.currentCase].comments = commentsEl.value;
   localStorage.setItem("echoWMA_state", JSON.stringify(state));
@@ -1001,6 +1018,19 @@ document.addEventListener("keydown", (e) => {
 // INIT
 // ============================================================
 function init() {
+  if (REVIEW_MODE) {
+    document.body.classList.add('review-mode');
+    document.getElementById('intakeModal').classList.add('hidden');
+    state.maxVisitedCase = 5;
+    renderLegend();
+    renderBulkActions();
+    renderCaseTabs();
+    renderAll();
+    loadVideo(state.currentCase);
+    updateNav();
+    return;
+  }
+
   loadState();
 
   // Already submitted
